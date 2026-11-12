@@ -1,0 +1,44 @@
+name = "peralta-ai-api"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+
+# Workers AI: runs the chat model on Cloudflare's GPUs
+[ai]
+binding = "AI"
+
+# Private analytics database
+[[d1_databases]]
+binding = "DB"
+database_name = "peralta-ai"
+database_id = "72f540a5-3a40-4ab9-b6c8-65488029c720"  # from: npx wrangler d1 create peralta-ai
+
+[vars]
+# Only this site may call the API (comma-separate more than one)
+ALLOWED_ORIGIN = "https://anyobell.github.io"
+MODEL = "@cf/meta/llama-3.1-8b-instruct-fp8-fast"
+MSGS_PER_ID_PER_DAY = "60"     # per student browser
+MSGS_PER_IP_PER_DAY = "2000"   # high on purpose: a whole campus can share one Wi-Fi IP
+MSGS_PER_DAY_TOTAL  = "1500"   # site-wide cap that protects your budget
+RETENTION_DAYS      = "180"    # raw events are deleted after this many days
+
+# Sign-in: only these email domains are accepted (comma-separated)
+ALLOWED_EMAIL_DOMAINS = "cc.peralta.edu"
+# Address the sign-in codes come from. Leave empty until you choose a sender (see README);
+# until then codes are written to the Worker logs only (npx wrangler tail).
+EMAIL_FROM = ""
+
+# Secrets (set with wrangler, never commit them):
+#   npx wrangler secret put ADMIN_TOKEN   -> unlocks the Insights tab and CSV export
+#   npx wrangler secret put IP_SALT       -> any long random string
+#   npx wrangler secret put EMAIL_KEY     -> long random string; scrambles emails. Never change it,
+#                                            or existing accounts can't sign back in.
+#   npx wrangler secret put RESEND_API_KEY -> only if you send codes through Resend
+
+# Option A for sending codes: Cloudflare Email Service (beta). Needs a domain on Cloudflare DNS,
+# onboarded under Email > Email Sending. Uncomment and set EMAIL_FROM above.
+# [[send_email]]
+# name = "EMAIL"
+
+# Daily cleanup at 10:00 UTC (deletes old events and old rate-limit rows)
+[triggers]
+crons = ["0 10 * * *"]
